@@ -6,7 +6,9 @@ import os
 import re
 import smtplib
 import subprocess
+from email.mime.text import MIMEText
 
+smtpServer = "localhost"
 
 def create_logger(target_file):
     logger = logging.getLogger(__name__)
@@ -88,7 +90,8 @@ def get_recipient_address():
 
 
 def git_log(format_code, ref_name):
-    return git(['log -n 1 --format=%s' % format_code, ref_name])
+    #return git(['log -n 1 --format=%s' % format_code, ref_name])
+    return git('log -n 1 --format=%s ' % format_code + ref_name)
 
 
 def get_repo_name():
@@ -106,12 +109,12 @@ def send_email(message):
     sender = git('config hooks.envelopesender')
     recipients = get_recipient_address()
     try:
-        s = smtplib.SMTP('localhost')
+        s = smtplib.SMTP(smtpServer)
         s.sendmail(sender, recipients, message)
+        s.quit()
     except:
         log.exception('The send_email() function encountered an error.')
         exit(1)
-
 
 def create_head_data(commit):
 
@@ -128,11 +131,11 @@ def create_head_data(commit):
 
     if commit['action'] == 'create' or commit['action'] == 'update':
         commit['hash'] = commit['new']
-        commit['type'] = git('cat-file -t', commit['new'])
+        commit['type'] = git('cat-file -t '+commit['new'])
 
     elif commit['action'] == 'delete':
         commit['hash'] = commit['old']
-        commit['type'] = git('cat-file -t', commit['old'])
+        commit['type'] = git('cat-file -t '+commit['old'])
 
     else:
         exit(1)
@@ -145,7 +148,7 @@ def create_head_data(commit):
     taglist = git('tag -l')
     commit['tag'] = 'none'
     if taglist:
-        commit['tag'] = git('describe', commit['hash'], '--tags')
+        commit['tag'] = git('describe '+commit['hash']+ ' --tags')
 
     commit['diff'] = ''
     if not result:
@@ -157,7 +160,7 @@ def create_head_data(commit):
     commit['subject'] = git_log('%s', commit['ref_name'])
     commit['body'] = git_log('%b', commit['ref_name'])
 
-    files = git('show --pretty=format: --name-only', commit['hash'])
+    files = git('show --pretty=format: --name-only '+commit['hash'])
     file_list = files.split('\n')
     files = ''
     for file in file_list:
@@ -177,7 +180,7 @@ def create_head_data(commit):
         except:
             commit['shared_path'] = str(commit['repo'] + '/')
 
-    create_head_msg(commit)
+    return create_head_msg(commit)
 
 
 def create_head_msg(commit):
@@ -213,7 +216,8 @@ Diff:
 """ % commit
 
     message = header + body
-    send_email(message)
+    return message
+    #send_email(message)
 
 
 def create_tag_data(commit):
@@ -235,7 +239,7 @@ def create_tag_data(commit):
         commit['repo'],
         commit['points_to']
     )
-    create_tag_msg(commit)
+    return create_tag_msg(commit)
 
 
 def create_tag_msg(commit):
@@ -264,7 +268,8 @@ Crucible URL: %(url)s
 """ % commit
 
     message = header + body
-    send_email(message)
+    return message
+    #send_email(message)
 
 
 def main():
@@ -281,12 +286,20 @@ def main():
     commit['recipient'] = get_recipient_address()
 
     if 'heads' in commit['ref_name']:
-        create_head_data(commit)
+        fullMsg=create_head_data(commit)
     elif 'tags' in commit['ref_name']:
-        create_tag_data(commit)
+        fullMsg =create_tag_data(commit)
     else:
         m = 'Neither "heads" nor "tags" was in this ref name: %s'
-        log.debug(m % ref_name)
+        logging.warning(m % ref_name)
+        return
+
+    logging.warning(fullMsg)
+
+    send_email(fullMsg)
+
+    return
+
 
 
 if __name__ == '__main__':
