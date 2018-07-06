@@ -55,6 +55,7 @@ repo. Below is an example of a `.git/config` file:
 
 
 You also need add the git account into the syslog group as the following, or the "log = create_logger('/var/log/git-post-receive')" will trigger a permission problem.
+
     # sudo usermod -aG syslog git
 
 License
