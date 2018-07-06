@@ -28,6 +28,8 @@ to send data to this script. You might use a shell script to do this:
     > read stdin
     > echo $stdin | /usr/bin/env python post-receive.py
 If you haven't set the PATH to post-receive.py in your environment, you need write the full path in the post-receive, e.g. my script of post-receive is like this:
+
+    # post-receive
     > #!/bin/sh
     > read stdin
     > echo $stdin | /usr/bin/env python /home/git/.gitolite/hooks/common/post-receive.py
