@@ -27,6 +27,11 @@ to send data to this script. You might use a shell script to do this:
     > #!/bin/sh
     > read stdin
     > echo $stdin | /usr/bin/env python post-receive.py
+If you haven't set the PATH to post-receive.py in your environment, you need write the full path in the post-receive, e.g. my script of post-receive is like this:
+    > #!/bin/sh
+    > read stdin
+    > echo $stdin | /usr/bin/env python /home/git/.gitolite/hooks/common/post-receive.py
+
 
 If you already have existing post-receive scripts in place, simply add those
 scripts to your post-receive file as well:
@@ -47,6 +52,10 @@ repo. Below is an example of a `.git/config` file:
         mailinglist = to@example.com
         emailprefix = "[git] "
         envelopesender = "from@example.com"
+
+
+You also need add the git account into the syslog group as the following, or the "log = create_logger('/var/log/git-post-receive')" will trigger a permission problem.
+    # sudo usermod -aG syslog git
 
 License
 =======
